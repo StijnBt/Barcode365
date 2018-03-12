@@ -1,0 +1,4 @@
+# Binary files
+*.app
+# Config files
+settings.json

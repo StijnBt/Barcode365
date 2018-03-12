@@ -1,0 +1,16 @@
+{
+    "version": "0.2.0",
+    "configurations": [     
+        
+        {
+            "type": "al",
+            "request": "launch",
+            "name": "DEV2018W1",
+            "server": "http://DEV2018W1",
+            "serverInstance": "nav",
+            "authentication": "UserPassword",
+            "startupObjectId": 50700,
+            "schemaUpdateMode": "Synchronize"
+        }
+    ]
+}
