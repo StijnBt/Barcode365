@@ -49,6 +49,7 @@ table 50700 Barcode
         field(100;"Encoding Time";Integer)
         {
             Caption='Encoding Time';
+            Editable=false;
         }
     }
 
@@ -101,12 +102,11 @@ table 50700 Barcode
             "Encoding Type"::Code39Extended:;
             "Encoding Type"::Code39Mod43:;
             else
-            ERRor('Unknown encoding type');    
+              Error('Unknown encoding type');    
         end;
 
 
-        "Encoding Time" := CurrentDateTime -Start;
-        CalcFields("Barcode Image");
+        "Encoding Time" := CurrentDateTime - Start;
         Modify;
     end;
 
