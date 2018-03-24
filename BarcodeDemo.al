@@ -10,6 +10,8 @@ page 50700 "Barcode Demo"
     UsageCategory= Tasks;
     ApplicationArea = all;
     Caption='Barcode Demo';
+    PopulateAllFields =false;
+    SaveValues=false;
 
     layout
     {
@@ -39,6 +41,8 @@ page 50700 "Barcode Demo"
                     MultiLine=true;
                 }
                 field("Encoding Time";"Encoding Time")
+                {}
+                field("Has Value";"Barcode Image".HasValue)
                 {}
             }
         }
