@@ -5,11 +5,9 @@ codeunit 50701 "Barcode Mgt."
     var
         Barcode: Record Barcode;
         Code39Codes: Dictionary of [Char, Text];
-        Size: Integer;
 
     trigger OnRun();
     begin
-        Size := 1;
 
         Barcode := Rec;
         Clear("Binary Text");
@@ -17,9 +15,11 @@ codeunit 50701 "Barcode Mgt."
         case "Encoding Type" of
             "Encoding Type"::Code39 :
                 ProcessCode39;
-        "Encoding Type"::Code39Extended :;
-        "Encoding Type"::Code39Mod43 :;
+            "Encoding Type"::Code39Extended :;
+            "Encoding Type"::Code39Mod43 :;
         end;
+
+        Rec := Barcode;
     end;
 
     local procedure ProcessCode39()
@@ -28,17 +28,20 @@ codeunit 50701 "Barcode Mgt."
         character: Char;
         binarytext:Text;
         uppercasecharacter: Text;
+        ostream : OutStream;
+        origvalue : Text;
     begin
         InitCode39;
         Barcode.Value := DelChr(Barcode.Value, '=', '*');
+        origvalue := Barcode.Value;
         Barcode.Value := '*' + Barcode.Value + '*';
 
         for counter := 1 to StrLen(Barcode.Value) do
         begin
+            binarytext += '0';
             character := Barcode.Value[counter];
             uppercasecharacter := UpperCase(Format(character));
-            binarytext += Code39Codes.Get(uppercasecharacter[1]);
-            binarytext += '0';
+            binarytext += Code39Codes.Get(uppercasecharacter[1]);          
         end;
 
         binarytext := CopyStr(BinaryText, 1, StrLen(BinaryText));
@@ -47,22 +50,29 @@ codeunit 50701 "Barcode Mgt."
 
         WriteTextToBinaryTextBlob(binarytext);
 
+        Barcode."Barcode Image".CreateOutStream(ostream);
+
+        CreateBmpHeader(ostream);
+        CreateBmpDetail(ostream);
+
+        Barcode.Value := origvalue;
+        
         CLEAR(Code39Codes);
     end;
 
     local procedure InitCode39()
     begin
         clear(Code39Codes);
-        Code39Codes.Add(0, '101001101101');
-        Code39Codes.Add(1, '110100101011');
-        Code39Codes.Add(2, '101100101011');
-        Code39Codes.Add(3, '110110010101');
-        Code39Codes.Add(4, '101001101011');
-        Code39Codes.Add(5, '110100110101');
-        Code39Codes.Add(6, '101100110101');
-        Code39Codes.Add(7, '101001011011');
-        Code39Codes.Add(8, '110100101101');
-        Code39Codes.Add(9, '101100101101');
+        Code39Codes.Add('0', '101001101101');
+        Code39Codes.Add('1', '110100101011');
+        Code39Codes.Add('2', '101100101011');
+        Code39Codes.Add('3', '110110010101');
+        Code39Codes.Add('4', '101001101011');
+        Code39Codes.Add('5', '110100110101');
+        Code39Codes.Add('6', '101100110101');
+        Code39Codes.Add('7', '101001011011');
+        Code39Codes.Add('8', '110100101101');
+        Code39Codes.Add('9', '101100101101');
         Code39Codes.Add('A', '110101001011');
         Code39Codes.Add('B', '101101001011');
         Code39Codes.Add('C', '110110100101');
@@ -99,47 +109,44 @@ codeunit 50701 "Barcode Mgt."
         Code39Codes.Add('*', '100101101101');
     end;
 
-    local procedure CreateBmpHeader()
+    local procedure CreateBmpHeader(ostream:OutStream)
     var
-        ostream: OutStream;
         charHelper: Char;
+        size: Integer;
+        height:Integer;
     begin
-        Barcode."Barcode Image".CreateOutStream(ostream);
+        size := ROUND(Barcode."Binary Text Length" * 0.25, 1, '>') * Barcode."Binary Text Length" * 3;
+        height := ROUND(Barcode."Binary Text Length" * 0.25, 1, '>');
 
         charHelper := 'B';
         ostream.Write(charHelper, 1);
         charHelper := 'M';
-        ostream.Write(charHelper, 1);
-        ostream.Write(54 * 3, 4);                                                //SIZE BMP
-        //stream.Write(54 + ROUND(strlen(BinaryText) * 0.25, 1, '>') * strlen(BinaryText) * 3, 4); //SIZE BMP
-        ostream.WRITE(0, 4);                                                     //APPLICATION SPECIFIC
-        ostream.WRITE(54, 4);                                                    //OFFSET DATA PIXELS
-        ostream.WRITE(40, 4);                                                    //NUMBER OF BYTES IN HEADER FROM THIS POINT
-        ostream.WRITE(Barcode."Binary Text Length", 4);                          //WIDTH PIXEL
-        ostream.WRITE(ROUND(Barcode."Binary Text Length" * 0.25, 1, '>'), 4);    //HEIGHT PIXEL
-        ostream.WRITE(65536 * 24 + 1, 4);                                        //COLOR DEPTH
-        ostream.WRITE(0, 4);                                                     //NO. OF COLOR PANES & BITS PER PIXEL
-        ostream.WRITE(0, 4);                                                     //SIZE BMP DATA
-        ostream.WRITE(2835, 4);                                                  //HORIZONTAL RESOLUTION
-        ostream.WRITE(2835, 4);                                                  //VERTICAL RESOLUTION
-        ostream.WRITE(0, 4);                                                     //NO. OF COLORS IN PALETTE
-        ostream.WRITE(0, 4);                                                     //IMPORTANT COLORS 
+        ostream.Write(charHelper, 1);          
+        ostream.Write(54 + size, 4);                        //SIZE BMP
+        ostream.WRITE(0, 4);                                //APPLICATION SPECIFIC
+        ostream.WRITE(54, 4);                               //OFFSET DATA PIXELS
+        ostream.WRITE(40, 4);                               //NUMBER OF BYTES IN HEADER FROM THIS POINT
+        ostream.WRITE(Barcode."Binary Text Length", 4);     //WIDTH PIXEL
+        ostream.WRITE(height, 4);                           //HEIGHT PIXEL
+        ostream.WRITE(65536 * 24 + 1, 4);                   //COLOR DEPTH
+        ostream.WRITE(0, 4);                                //NO. OF COLOR PANES & BITS PER PIXEL
+        ostream.WRITE(0, 4);                                //SIZE BMP DATA
+        ostream.WRITE(2835, 4);                             //HORIZONTAL RESOLUTION
+        ostream.WRITE(2835, 4);                             //VERTICAL RESOLUTION
+        ostream.WRITE(0, 4);                                //NO. OF COLORS IN PALETTE
+        ostream.WRITE(0, 4);                                //IMPORTANT COLORS 
     end;
 
-    local procedure CreateBmpDetail()
+    local procedure CreateBmpDetail(ostream:OutStream)
     var
-        ostream: OutStream;
         barloop:Integer;
         lineloop:Integer;
         fillerloop:Integer;
         bmpchar:Char;
         texthelper:Text;
     begin
-        //Barcode.calcfields("Binary Text");
-        Barcode."Barcode Image".CreateOutStream(ostream);
         texthelper := GetTextFromBinaryTextBlob();
-        
-
+    
         for lineloop := 1 to ROUND(Barcode."Binary Text Length" * 0.25, 1, '>')  do begin
             for barloop := 1 to Barcode."Binary Text Length" do begin             
               if (texthelper[barloop] = '1') then
@@ -155,7 +162,7 @@ codeunit 50701 "Barcode Mgt."
                 bmpchar := 0;
                 ostream.Write(bmpchar,1);
             end; 
-        end;       
+        end;      
     end;
 
     local procedure WriteTextToBinaryTextBlob(binarytext: Text)
